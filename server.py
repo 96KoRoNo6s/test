@@ -4,43 +4,41 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Твой личный список "валидных" токенов (кому ты разрешил пользоваться ботом)
-ALLOWED_TOKENS = ["USER_1_TOKEN", "MY_FRIEND_KEY", "ADMIN_1337"]
+# ТВОЙ РАБОЧИЙ КЛЮЧ (через который сервер будет тянуть данные)
+MASTER_KEY = "ТВОЙ_ЛИЧНЫЙ_MARKET_KEY" 
+# Список ключей твоих "клиентов"
+VALID_CLIENT_KEYS = ["AMM-91E52E7C-4A5F", "ADMIN_KEY"]
 
-# Реальный адрес API рынка
-REAL_MARKET_API = "https://api.arz.market/api/selectMarketplace/"
-
-@app.route('/')
-def home():
-    return "Server is running. Monitoring active."
-
-@app.route('/api/selectMarketplace/<server_id>', methods=['GET', 'POST'])
-def proxy_market(server_id):
-    # 1. Достаем токен, который прислал бот
-    user_token = request.headers.get("authKey") or request.args.get("authKey")
+def get_data_from_arz(path, server_id=None):
+    # Формируем запрос к реальному API
+    url = f"https://api.arz.market/api/{path}/"
+    if server_id:
+        url += str(server_id)
     
-    # 2. ПРОВЕРКА: Если токена нет в нашем списке — шлем лесом
-    if user_token not in ALLOWED_TOKENS:
-        print(f"DEBUG: Попытка взлома или левый ключ: {user_token}")
-        return jsonify({"error": "License expired or invalid key"}), 403
-
-    # 3. ПРОКСИРОВАНИЕ: Если ключ верный, идем на настоящий рынок
-    # Мы используем СВОЙ системный ключ для запроса к оригиналу
-    system_auth_key = "ТВОЙ_ЛИЧНЫЙ_РАБОЧИЙ_MARKET_KEY" 
-    
+    headers = {"authKey": MASTER_KEY}
     try:
-        # Пересылаем запрос на оригинальный API
-        response = requests.get(
-            f"{REAL_MARKET_API}{server_id}",
-            headers={"authKey": system_auth_key},
-            timeout=10
-        )
-        # Возвращаем данные боту так, будто это ответил оригинал
-        return (response.text, response.status_code, response.headers.items())
-    except Exception as e:
-        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+        # Тянем данные с реального сайта
+        resp = requests.get(url, headers=headers, timeout=5)
+        return resp.json()
+    except:
+        return []
+
+@app.route('/api/selectMarketplace/', defaults={'server_id': 0}, methods=['GET', 'POST'])
+@app.route('/api/selectMarketplace/<server_id>', methods=['GET', 'POST'])
+@app.route('/api/getSelectedMarketplace/<server_id>', methods=['GET'])
+def handle_all(server_id):
+    # Проверка ключа (из заголовков или параметров)
+    key = request.headers.get("authKey") or request.args.get("authKey")
+    
+    if key not in VALID_CLIENT_KEYS:
+        return jsonify({"error": "No access"}), 403
+
+    # Определяем, какой API вызвал бот
+    path = "selectMarketplace" if "selectMarketplace" in request.path else "getSelectedMarketplace"
+    
+    # Получаем реальные данные и отдаем боту
+    data = get_data_from_arz(path, server_id)
+    return jsonify(data)
 
 if __name__ == "__main__":
-    # Render сам назначит порт через переменную окружения
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
