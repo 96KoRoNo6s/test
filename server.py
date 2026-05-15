@@ -186,6 +186,11 @@ def health():
     })
 
 
+@app.get("/")
+def index():
+    return health()
+
+
 @app.get("/api/storage")
 def storage_index():
     denied = require_storage_key()
