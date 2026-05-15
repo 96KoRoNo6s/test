@@ -1,0 +1,12 @@
+{
+    "bot_token": "PUT_TELEGRAM_BOT_TOKEN_IN_LOCAL_CONFIG_ONLY",
+    "api_url": "https://your-storage-site.example.com/api/selectMarketplace/",
+    "legacy_api_url": "https://your-storage-site.example.com/api/getSelectedMarketplace",
+    "market_auth_key": "",
+    "market_api_server_id": "29",
+    "arzmarket_ini_file": "../config/ArzMarket/ArzMarket.ini",
+    "remote_storage_url": "https://your-storage-site.example.com",
+    "remote_storage_key_env": "AMM_STORAGE_KEY",
+    "remote_storage_timeout": 8,
+    "items_file": "items.json"
+}
