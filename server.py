@@ -352,7 +352,8 @@ def storage_doc(name):
 
     if request.method == "GET":
         if not path.exists():
-            return jsonify({"ok": False, "error": "storage document not found"}), 404
+            default_val = [] if name == "bans" else {}
+            return jsonify(default_val)
         return jsonify(_read_json(path, {}))
 
     body = _json_body(None)
